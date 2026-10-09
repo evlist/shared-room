@@ -1,6 +1,6 @@
-# wp-bindly
+# wp-otherguise
 
-Code name for the project that replaces the "`?print` hack" described in the [Balisage 2026 presentation](https://evlist.github.io/balisage-2026/) with a cleaner mechanism, and helps assemble PDFs into books. "wp-bindly" is the umbrella name with the widest scope; the final names of the plugins (if there are several) are not chosen yet.
+The project that replaces the "`?print` hack" described in the [Balisage 2026 presentation](https://evlist.github.io/balisage-2026/) with a cleaner mechanism, and helps assemble PDFs into books. The name is a blend of *otherwise* and *guise*: the same content, in another guise. It was chosen on 2026-10-09; the short-lived code name was `wp-bindly`. `wp-otherguise` is the name of the single plugin (see "Packaging"); its modules keep their technical names `Triples`, `Modes` and `Books`.
 
 Status: **brainstorming**. No repository and no code yet. Written on 2026-10-09 from the discussion in a Claude Code session; update it as points are settled.
 
@@ -183,7 +183,7 @@ Namespaces are necessary but not sufficient. The eight rules that keep the split
 1. **One-way dependencies, checked by an automated test** (`deptrac` or equivalent): `Triples` knows nothing, `Modes` sees only `Triples`, `Books` sees only the other two.
 2. **Talk through a public API, not concrete classes.** `Modes` never writes SQL in the `Triples` tables; it goes through interfaces and hooks (for example registering the "mode" qualifier type).
 3. **Each module owns its data:** creation and migration of its tables, its schema version in its own option, its own cleanup in `uninstall`.
-4. **Names belong to the module, not to the umbrella:** table names (`triples_statements`, not `bindly_statements`), options, hooks, REST namespace (`triples/v1`), capabilities and text domain. This is the costliest to fix afterwards, because renaming stored data and settings needs a migration.
+4. **Names belong to the module, not to the umbrella:** table names (`triples_statements`, not `otherguise_statements`), options, hooks, REST namespace (`triples/v1`), capabilities and text domain. This is the costliest to fix afterwards, because renaming stored data and settings needs a migration.
 5. **A directory layout that lets a module be lifted out:** `plugin/modules/triples/`, `modules/modes/`, `modules/books/`, each with its own sources, tests, translation files and admin scripts.
 6. **Tests per module** that run without loading the other modules (except the ones it depends on). This is the real proof that the separation exists.
 7. **A module loader:** each module has its own bootstrap, and the plugin loads the list of enabled modules.
@@ -266,7 +266,7 @@ First step: read Media Helper's attachment model and the hooks it already offers
 ## Open questions
 
 1. ~~Packaging~~: decided, see "Packaging" above. Still open within it: the plugin's final name.
-2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
+2. ~~Names~~: decided, the plugin is `wp-otherguise`; the modules are `Triples`, `Modes` and `Books`. To check again if the plugin is submitted to WordPress.org: the slug `otherguise` was free on 2026-10-09.
 3. **PDF automation**: the current manual chain and the options are described above. To decide: which backends to build first (browser output is the baseline) and whether any lives in this project.
 4. ~~Page formats and printers~~: A5 at coollibri.com for now; keep the format configurable. Still open: index design (see "Table of contents and index").
 5. **Domain 1 scope**: what is built first, and whether the triples component is extracted as a standalone plugin later.

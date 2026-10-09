@@ -34,7 +34,7 @@ One body of content (a travel blog on WordPress) published in several forms: web
 
 ## State of the thinking (not settled unless marked)
 
-Code name **wp-bindly** (umbrella name for the three domains below). The full summary, with each point marked decided, proposed or open, is in [`wp-bindly/README.md`](wp-bindly/README.md); read it first and keep it up to date. What follows is the short version.
+The project is called **wp-otherguise** ("same content, another guise"; chosen on 2026-10-09 after a short-lived code name `wp-bindly`), the umbrella for the three domains below. The full summary, with each point marked decided, proposed or open, is in [`wp-otherguise/README.md`](wp-otherguise/README.md); read it first and keep it up to date. What follows is the short version.
 
 Three functional domains, with one-way dependencies:
 
@@ -48,14 +48,13 @@ Decided (Eric accepted these recommendations):
 - Relations also apply to template parts, not only templates.
 - Trigger with `?mode=print`, with an optional `?print` alias for existing links.
 - Relations are edited in an admin screen, with JSON export and import.
-- Statements have an identity (`rel:ID` is a valid subject or object) and carry typed qualifiers declared in the predicate registry; the core knows nothing about modes. Stored in two tables (statements, qualifiers) at the start. Details in `wp-bindly/README.md`.
+- Statements have an identity (`rel:ID` is a valid subject or object) and carry typed qualifiers declared in the predicate registry; the core knows nothing about modes. Stored in two tables (statements, qualifiers) at the start. Details in `wp-otherguise/README.md`.
 
-- **One plugin with three modules** (`Triples`, `Modes`, `Books`), to be split into three plugins later if useful. Follow the eight rules in the "Packaging" section of `wp-bindly/README.md`: one-way dependencies enforced by a test, communication through a public API, each module owns its data, names (tables, options, hooks, REST namespace, capabilities, text domain) belong to the module and not to the umbrella, a lift-out directory layout, per-module tests, a module loader, no catch-all "common" directory.
+- **One plugin with three modules** (`Triples`, `Modes`, `Books`), to be split into three plugins later if useful. Follow the eight rules in the "Packaging" section of `wp-otherguise/README.md`: one-way dependencies enforced by a test, communication through a public API, each module owns its data, names (tables, options, hooks, REST namespace, capabilities, text domain) belong to the module and not to the umbrella, a lift-out directory layout, per-module tests, a module loader, no catch-all "common" directory.
 
 Open (do not assume):
 
-- The final name of the plugin (candidates: `wp-bindly`, `wp-books`, or a name centered on relations).
-- Which PDF renderer backends to build and whether they belong to this project (PDFs are currently made by hand: print from a browser, merge with PDF Arranger). Direction: HTML + CSS book page printable from a browser as the default, optional sidecar renderer. The `?print` hack is the plugin `wp-pdf-helper` (<https://gitea.dyomedea.com/vdv/wp-pdf-helper>, public); findings and automation options are in `wp-bindly/README.md`.
+- Which PDF renderer backends to build and whether they belong to this project (PDFs are currently made by hand: print from a browser, merge with PDF Arranger). Direction: HTML + CSS book page printable from a browser as the default, optional sidecar renderer. The `?print` hack is the plugin `wp-pdf-helper` (<https://gitea.dyomedea.com/vdv/wp-pdf-helper>, public); findings and automation options are in `wp-otherguise/README.md`.
 - Whether the Gitea server holding private repositories is reachable: requires allowing its domain in the environment's network settings and a read-only token stored as a network secret or environment variable, never pasted in chat.
 
 ## Rules for working

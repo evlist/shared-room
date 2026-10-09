@@ -53,7 +53,7 @@ The **Claude Code** column says whether I have worked on the repository with Cla
 
 ## Projects under discussion
 
-- [`wp-bindly/`](wp-bindly/README.md): code name for the project replacing the `?print` hack and helping assemble books. No repository yet. Three domains: triples (a registry of *(subject, predicate, object)* relations), multiple templates (modes), and books.
+- [`wp-otherguise/`](wp-otherguise/README.md): the project replacing the `?print` hack and helping assemble books ("same content, another guise"). No repository yet. Three domains: triples (a registry of *(subject, predicate, object)* relations), multiple templates (modes), and books.
 
 ## To do
 
