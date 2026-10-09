@@ -191,7 +191,7 @@ First step: read Media Helper's attachment model and the hooks it already offers
 
 1. ~~Packaging~~: decided, see "Packaging" above. Still open within it: the plugin's final name.
 2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
-3. **Current hack and PDF chain**: Eric will provide the PHP of the `?print` hack and describe how PDFs are made and assembled. The presentation does not contain them.
+3. **PDF chain**: the `?print` hack is now known (see "The current hack"). Still to describe by Eric: how PDFs are made and assembled, where the `-print` templates and the print links live, and what the "Regression" commit refers to.
 4. **Page formats and printers** for the books.
 5. **Domain 1 scope**: what is built first, and whether the triples component is extracted as a standalone plugin later.
 6. **Gitea**: Eric's private repositories on his Gitea server may contain the hack. Reaching them requires allowing the server's domain in the environment's network settings and a read-only token stored as a secret, not pasted in chat.
