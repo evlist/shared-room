@@ -36,11 +36,39 @@ Examples of what it covers:
 
 | Need | Triple |
 |---|---|
-| Print version of a template | `(template:foo, mode/print, template:bar)` |
+| Print version of a template | `(template:foo, has-variant, template:bar)` qualified by `mode: print` |
 | Photo illustrating a post (without the single-parent limit of `post_parent`) | `(post:12, illustrated-by, attachment:88)` |
 | Video of a post | `(post:12, has-video, ext:youtube:abc123)` |
 | Trip stages | `(post:12, next, post:13)` or `(post:12, part-of, post:2)` |
 | Content of a book | `(post:book-2026, contains, post:12)` with a position |
+
+### Reification: statements with identity and qualifiers
+
+**Decided.** Eric's example: a photo attached to a post, where the attachment must say whether it concerns the web presentation, the print presentation, or both. That is an n-ary relation, so a plain triple is not enough. Options considered: pure triples reified on demand (a fact becomes several triples), one predicate per combination (unmanageable), quads with a context column (covers the mode but not position or caption), and **statements with identity and qualifiers**, which was chosen.
+
+- Every statement has its own **identity**. `rel:123` is a valid typed identifier, usable as subject or object of another statement, so true reification (a statement about a statement) stays possible without any schema change.
+- A statement can carry **qualifiers**: typed key/value pairs declared by the predicate in the registry (name, type, single or multiple values). The core validates them.
+- The core knows nothing about modes. Domain 2 registers a qualifier type "mode" (a set of mode slugs). This keeps the one-way dependency. This replaces the earlier idea of making a mode a predicate (`mode/print`), which was dropped: it multiplies predicates and cannot carry other qualifiers.
+- Reading rule (**proposed**): no `mode` qualifier means "all modes"; the most specific statement wins, as for templates.
+
+```
+(post:12, illustrated-by, attachment:88) {modes: [web, print], position: 2}
+(post:12, illustrated-by, attachment:91) {modes: [print]}
+(template:foo, has-variant, template:bar) {mode: print}
+```
+
+**Decided: two tables at the start.**
+
+- Statements: logically `id, subject, predicate, object`; physically `id`, `subject_type`, `subject_id`, `predicate`, `object_type`, `object_id`, and probably a position.
+- Qualifiers: `(statement_id, key, value)`, indexed on `(key, value)`. A JSON column is avoided because WordPress does not guarantee the JSON type on every database it supports, and filtering by mode must be efficient.
+- Reasons for two tables over one: qualifiers can be type-checked through the registry, queries by mode are simpler to index, and deleting a statement removes its qualifiers without a special rule.
+- The two forms are **logically equivalent**: a qualifier is a triple whose subject is the statement, `(rel:123, mode, "print")`. A single table (literals allowed as objects) is therefore possible later without changing the model.
+
+Open sub-questions:
+
+- May several statements share the same *(subject, predicate, object)* with different qualifiers (needed if the position of a photo differs between web and print)? Proposed: a flag per predicate.
+- Is an exclusion form ("all modes except print") needed? Proposed: not at the start; one statement per mode is enough.
+- Not planned: named graphs, inference.
 
 Risk: a generic relation engine can absorb all the development time. **Proposed** mitigation: deliver first only the two uses that serve the books (template modes and the ordered content of a book) behind a clean API; add media and post-to-post relations as real needs appear. The "Posts 2 Posts" plugin did something similar for posts and is no longer maintained, which shows both the need and the effort.
 
@@ -50,7 +78,7 @@ Risk: a generic relation engine can absorb all the development time. **Proposed*
 
 - A **mode** is a declared entity: slug (`print`, `book`, `cover`...), label, query-string trigger.
 - A **relation** *(source template, mode) → target template* says "template `bar` is the `print` version of template `foo`". One target can serve several sources. A default target per mode is possible: *(\*, print) → print-default*.
-- **Proposed**: a mode is a registered predicate (`mode/print`), so the model stays a pure triple.
+- **Decided**: a mode is *not* a predicate. The mode of a relation is a qualifier of the statement (see "Reification" above): "`bar` is the `print` version of `foo`" is `(template:foo, has-variant, template:bar)` qualified by `mode: print`.
 - **Resolution**: WordPress picks the template as usual (full hierarchy); if a mode is active, the plugin looks for a relation for that template, then a default target for the mode, then applies the fallback.
 
 Decided details:
@@ -76,7 +104,7 @@ To verify in the WordPress source before building: block themes (HTML files, or 
 Only sketched so far; nothing decided.
 
 - **Proposed**: a book is a selection of posts (by date, category, tag or trip) with an order and sections (month, stage), stored as an ordered `contains` relation.
-- **Proposed**: `book` and `cover` are modes of domain 2, each with its own target templates. Each post is rendered in the `print`/`book` mode.
+- **Proposed**: `book` and `cover` are modes of domain 2, each with its own target templates. Each post is rendered in the `print`/`book` mode. A photo can then be attached to a post for the web only, for print only, or for both, through the `mode` qualifier.
 - **PDF production, proposed order**:
   1. A single "book" page: all posts concatenated with a table of contents, CSS `@page` rules and page breaks, turned into a PDF by the browser or a paged-media tool. This needs no external binary and keeps the "no `shell_exec`" rule used in `wp-i18nly`.
   2. Later, optionally, server-side rendering (headless Chrome or a service) to produce PDFs automatically.
@@ -86,7 +114,7 @@ Not yet known: how PDFs are produced and assembled today, page sizes and printer
 
 ## Open questions
 
-1. **Packaging**: one repository per plugin, or one repository with three plugins? WordPress 6.5+ lets a plugin declare dependencies with the `Requires Plugins` header. Claude's leaning: one repository with three plugins while the core API is not stable, each distributable separately; Eric's past plugins (`wp-scatter-elsewhere`, `wp-media-helper`) are separate repositories.
+1. **Packaging**: one plugin with three modules, or three plugins? WordPress 6.5+ lets a plugin declare dependencies with the `Requires Plugins` header, but it does not constrain versions. Claude's revised leaning (it changed an earlier preference for three plugins in one repository): **one plugin with three namespaces (`Triples`, `Modes`, `Books`)** and an automated test forbidding reverse dependencies (a tool such as `deptrac`); extract the core into its own plugin once its API has been stable for a while and a second consumer exists. Reasons: the triples model is still moving (see the reification discussion), three plugins would freeze an unstable cross-plugin API, the core table would be owned by one plugin while holding other plugins' data (uninstalling it would destroy or orphan them), and costs triple (translations, `uninstall.php`, schema migrations, admin screens). Against: the boundary is enforced by discipline and tests rather than by packaging. Eric's past plugins (`wp-scatter-elsewhere`, `wp-media-helper`) are separate repositories. Not decided yet.
 2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
 3. **Current hack and PDF chain**: Eric will provide the PHP of the `?print` hack and describe how PDFs are made and assembled. The presentation does not contain them.
 4. **Page formats and printers** for the books.

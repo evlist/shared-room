@@ -39,7 +39,7 @@ Code name **wp-bindly** (umbrella name for the three domains below). The full su
 Three functional domains, with one-way dependencies:
 
 1. **Triples**: a registry of predicates and a store of *(subject, predicate, object)* relations with typed identifiers (`post:123`, `term:45`, `template:theme//slug`, `attachment:88`, `ext:youtube:ID`), optional position (for order) and metadata. Depends on nothing.
-2. **Multiple templates**: *modes* (`print`, `book`, `cover`...) selected through the query string; "template `bar` is the `print` version of template `foo`" is the triple `(foo, mode/print, bar)`. A mode is a registered predicate. Depends on 1.
+2. **Multiple templates**: *modes* (`print`, `book`, `cover`...) selected through the query string; "template `bar` is the `print` version of template `foo`" is the statement `(foo, has-variant, bar)` qualified by `mode: print`. A mode is a qualifier, not a predicate. Depends on 1.
 3. **Books**: ordered `contains` relation, a single book page, PDF assembly. `book` and `cover` are modes of domain 2. Depends on 1 and 2.
 
 Decided (Eric accepted these recommendations):
@@ -48,10 +48,11 @@ Decided (Eric accepted these recommendations):
 - Relations also apply to template parts, not only templates.
 - Trigger with `?mode=print`, with an optional `?print` alias for existing links.
 - Relations are edited in an admin screen, with JSON export and import.
+- Statements have an identity (`rel:ID` is a valid subject or object) and carry typed qualifiers declared in the predicate registry; the core knows nothing about modes. Stored in two tables (statements, qualifiers) at the start. Details in `wp-bindly/README.md`.
 
 Open (do not assume):
 
-- Packaging: one repository per plugin, or one repository with three plugins; declare dependencies with `Requires Plugins`.
+- Packaging: one plugin with three modules (Claude's current leaning) or three plugins; see `wp-bindly/README.md`.
 - Plugin names (candidates: `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`).
 - How the current `?print` hack and the PDF production chain work in detail: Eric will provide the code; the presentation does not contain it.
 - Whether the Gitea server holding private repositories is reachable: requires allowing its domain in the environment's network settings and a read-only token stored as a network secret or environment variable, never pasted in chat.
