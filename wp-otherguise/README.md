@@ -167,6 +167,31 @@ Eric builds both by hand today and finds them useful features; the index "needs 
 - **Export.** The table of contents and the index can also be exported as CSV or JSON (with page numbers when known), which replaces Eric's database queries and keeps external steps possible.
 - **Delivery order (proposed):** table of contents without page numbers first; then page numbers by the declared strategy (page break per post, page counts, overflow check); then the index (places and routes from terms and statements, incidents from marks), as its own slice after a design note; the measured strategy later, when posts longer than a page or passage-level anchors are needed.
 
+## RDF import and export
+
+**Proposed**, **not a priority**. Eric's motivation: partly nostalgia (he worked on RDF in the 2000s) and, more seriously, the possibility of using semantic web tools if the need arises.
+
+Why it fits:
+
+- The core model is already a set of *(subject, predicate, object)* statements. Typed identifiers map to IRIs, and predicates of the registry can carry an optional IRI.
+- Statements with identity and qualifiers map to RDF through reification, the n-ary pattern, or RDF-star / RDF 1.2 annotations (more elegant, less well supported by tools; the current state of PHP library support was not checked).
+- Serializations: **Turtle** for humans and diffs (N3 is a superset with rules, which are not needed), **N-Triples** for streaming, **JSON-LD** as the most natural for WordPress (it is JSON, close to the REST API, and needs no heavy parser to produce).
+
+What it would bring: no lock-in, existing tools (SPARQL, SHACL, visualization), bulk editing of relations as text under version control, and links to external authorities (Wikidata, GeoNames for places, taxonomies for species) that would also give authority to the index and allow `schema.org` JSON-LD in pages.
+
+Costs and pitfalls:
+
+- **Stable IRIs.** Eric's remark: only media and posts have natural URIs. Public terms do have archive URLs, but they change with slugs and the permalink structure, and templates have none. A site-controlled IRI base independent of permalinks is needed, with a resolver per entity type.
+- **Import is much harder than export.** A Turtle serializer is about a hundred lines; import needs a parser (a dependency, whereas the plugin has none), blank nodes, typed literals, mapping IRIs back to local identifiers, validation and size limits for untrusted input.
+- **Out of scope:** an internal RDF store, a SPARQL endpoint, inference.
+
+Direction:
+
+1. JSON stays the main exchange format (exact round trip, qualifiers included), as decided.
+2. Later, add a JSON-LD export, then Turtle, as a function of the `Triples` module, not a new module.
+3. Consider RDF import only if a real need appears (for example seeding places from Wikidata).
+4. Prepare the ground now at almost no cost: an optional IRI per predicate, an IRI resolver interface per entity type, stable statement identifiers, and typed qualifier values (string, integer, boolean) so that they map to RDF datatypes.
+
 ## Packaging
 
 **Decided: one plugin with three modules** (`Triples`, `Modes`, `Books`), built so that it can later be split into three plugins at little cost. Extract the core into its own plugin once its API has been stable for a while and a second consumer exists.
