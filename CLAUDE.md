@@ -50,10 +50,11 @@ Decided (Eric accepted these recommendations):
 - Relations are edited in an admin screen, with JSON export and import.
 - Statements have an identity (`rel:ID` is a valid subject or object) and carry typed qualifiers declared in the predicate registry; the core knows nothing about modes. Stored in two tables (statements, qualifiers) at the start. Details in `wp-bindly/README.md`.
 
+- **One plugin with three modules** (`Triples`, `Modes`, `Books`), to be split into three plugins later if useful. Follow the eight rules in the "Packaging" section of `wp-bindly/README.md`: one-way dependencies enforced by a test, communication through a public API, each module owns its data, names (tables, options, hooks, REST namespace, capabilities, text domain) belong to the module and not to the umbrella, a lift-out directory layout, per-module tests, a module loader, no catch-all "common" directory.
+
 Open (do not assume):
 
-- Packaging: one plugin with three modules (Claude's current leaning) or three plugins; see `wp-bindly/README.md`.
-- Plugin names (candidates: `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`).
+- The final name of the plugin (candidates: `wp-bindly`, `wp-books`, or a name centered on relations).
 - How the current `?print` hack and the PDF production chain work in detail: Eric will provide the code; the presentation does not contain it.
 - Whether the Gitea server holding private repositories is reachable: requires allowing its domain in the environment's network settings and a read-only token stored as a network secret or environment variable, never pasted in chat.
 
