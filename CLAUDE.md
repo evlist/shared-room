@@ -32,29 +32,14 @@ One body of content (a travel blog on WordPress) published in several forms: web
 - Be honest about verification: say what ran only under automated tests and what was never tried on a real WordPress site or against a real external API.
 - When a filter or hook is shared with other plugins or themes, set the priority explicitly and document coexistence (a past bug came from Thumbnails Folder answering the same filter).
 
-## State of the thinking (not settled unless marked)
+## Projects
 
-The project is called **wp-otherguise** ("same content, another guise"; chosen on 2026-10-09 after a short-lived code name `wp-bindly`), the umbrella for the three domains below. The full summary, with each point marked decided, proposed or open, is in [`wp-otherguise/README.md`](wp-otherguise/README.md); read it first and keep it up to date. What follows is the short version.
+### wp-otherguise
 
-Three functional domains, with one-way dependencies:
+A WordPress plugin ("same content, another guise") that presents the same content in several forms (web, print, books). The principles are in [`wp-otherguise/README.md`](wp-otherguise/README.md); **the design notes, the decisions and the slices are in the repository `evlist/wp-otherguise`** (`docs/IA.md`, `docs/design/`, `docs/slices/`), which has its own `CLAUDE.md`. Do not duplicate them here: keep this repository to principles and links, and update it only when a principle changes.
 
-1. **Triples**: a registry of predicates and a store of *(subject, predicate, object)* relations with typed identifiers (`post:123`, `term:45`, `template:theme//slug`, `attachment:88`, `ext:youtube:ID`), no separate metadata: qualifications are statements about statements. Depends on nothing.
-2. **Multiple templates**: *modes* (`print`, `book`, `cover`...) selected through the query string; "template `bar` is the `print` version of template `foo`" is the statement `(foo, has-variant, bar)` with a further statement `(that statement, mode, mode:print)`. A mode is an entity, not a predicate. Depends on 1.
-3. **Books**: ordered `contains` relation, a single book page, PDF assembly. `book` and `cover` are modes of domain 2. Depends on 1 and 2.
+Open at the cross-project level (do not assume):
 
-Decided (Eric accepted these recommendations):
-
-- When no relation applies, fall back to the normal template; mode inheritance is optional.
-- Relations also apply to template parts, not only templates.
-- Trigger with `?mode=print`, with an optional `?print` alias for existing links.
-- Relations are edited in an admin screen, with JSON export and import.
-- Statements are triples that have an identity, and a qualification is another statement whose subject is the statement qualified (`(statement:41, mode, mode:print)`, `(statement:43, position, 1)`). One table, unique on the whole triple; objects are entities or typed literals; qualifiers are predicates of the same registry; the core knows nothing about modes. Details in `wp-otherguise/README.md` (revised on 2026-10-09).
-
-- **One plugin with three modules** (`Triples`, `Modes`, `Books`), to be split into three plugins later if useful. Follow the eight rules in the "Packaging" section of `wp-otherguise/README.md`: one-way dependencies enforced by a test, communication through a public API, each module owns its data, names (tables, options, hooks, REST namespace, capabilities, text domain) belong to the module and not to the umbrella, a lift-out directory layout, per-module tests, a module loader, no catch-all "common" directory.
-
-Open (do not assume):
-
-- Which PDF renderer backends to build and whether they belong to this project (PDFs are currently made by hand: print from a browser, merge with PDF Arranger). Direction: HTML + CSS book page printable from a browser as the default, optional sidecar renderer. The `?print` hack is the plugin `wp-pdf-helper` (<https://gitea.dyomedea.com/vdv/wp-pdf-helper>, public); findings and automation options are in `wp-otherguise/README.md`.
 - Whether the Gitea server holding private repositories is reachable: requires allowing its domain in the environment's network settings and a read-only token stored as a network secret or environment variable, never pasted in chat.
 
 ## Rules for working
