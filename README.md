@@ -25,6 +25,7 @@ The **Claude Code** column says whether I have worked on the repository with Cla
 | Repository | Claude Code | Notes |
 |---|---|---|
 | [`wp-i18nly`](https://github.com/evlist/wp-i18nly) | Yes | Translation workflow inside WordPress. Successor of `wp-i18n-404-tools`. |
+| [`wp-otherguise`](https://github.com/evlist/wp-otherguise) | Yes | Same content in another guise: relations, alternative templates by mode, books. Replaces the `?print` hack. Work in progress. |
 | [`wp-media-helper`](https://github.com/evlist/wp-media-helper) | Yes | Media sources and thumbnails. A security audit session took place there. |
 | [`wp-scatter-elsewhere`](https://github.com/evlist/wp-scatter-elsewhere) | Yes | Upload and update of YouTube videos from posts. Formerly `wp-scatter-everywhere`. |
 | [`wp-whobird`](https://github.com/evlist/wp-whobird) | Not observed | To be completed. |
@@ -51,7 +52,7 @@ The **Claude Code** column says whether I have worked on the repository with Cla
 | [`Saxon-CE`](https://github.com/evlist/Saxon-CE) | Not observed | Fork (2013). |
 | [`msv`](https://github.com/orbeon/msv) | Not observed | Repository of the `orbeon` organization. |
 
-## Projects under discussion
+## Projects
 
 - [`wp-otherguise/`](wp-otherguise/README.md): the plugin that replaces the `?print` hack and helps assemble books. Principles and links only; the project lives in [`evlist/wp-otherguise`](https://github.com/evlist/wp-otherguise).
 
