@@ -128,7 +128,16 @@ Consequences for the design (**proposed**):
 - Stamping folios on the final PDF is robust: it does not depend on CSS page-margin support, and the physical page number matches what the table of contents and index cite. Roman numerals for the front matter would need stamping a page range (to verify in `pdfcpu`).
 - The book format should be set where the page is laid out (`@page` size in the book template) rather than by scaling afterwards; the scaling step can stay as a compatibility option.
 - A part is defined by a date range and a title: composing a book from "a period", as Eric did with database queries, should be a first-class way to build the list of posts, with parts as sections of the ordered `contains` statements.
-- Still unknown: whether the table of contents and the index were inserted before or after the body in the first book, and the browser's print size.
+- Eric's caveat: this chain describes how the **first book** was made; it is a record of needs and constraints, not necessarily what he wants to reproduce.
+- Answers: the pages were printed from the browser at **A4** (then scaled to A5); in the first book the **table of contents is at the beginning and the index at the end**; the index was formatted in Writer (ODT) and is too large to share.
+
+Data from the table of contents of the first book (a spreadsheet of 215 rows: title and page, analyzed on 2026-10-09):
+
+- Six parts ("Premier mois" to "Sixième mois") starting on pages 8, 42, 79, 116, 153 and 190; the last entries are "Carte" (page 230) and "Index" (page 231). The body starts on physical page 8, so seven pages precede it (cover, title and the table of contents).
+- Entries are post titles (not dates). Besides the daily posts, each part has recurring sections: an opener (the month), often a "Résumé", and at the end a "whoBIRD" section (bird detections) and a "Carte" (map). Other repeated titles: "Le camino" (4 times), "Gastronomie".
+- **207 of 214 units take exactly one page.** Seven take more: five of two pages and two of three pages, almost all of them "whoBIRD" sections (their length depends on the number of detections), plus one "Gastronomie". With a default of one page per unit, only a handful of exceptions would have to be declared or measured, and they belong to a recognizable kind of content.
+- The table of contents has about 5 pages at the front, and **its length does not depend on the page numbers it contains** (digits do not change the number of lines): rendering it once with placeholder numbers gives its page count, then the real numbers can be filled in. With the table of contents at the front, two steps are enough; the index at the end shifts nothing.
+- The structure of a part is regular: opener, optional summary, daily posts, whoBIRD, map. This suggests a **kind** on each unit of the ordered `contains` statements (opener, summary, day, appendix...).
 
 ### Table of contents and index
 
@@ -151,7 +160,7 @@ Eric builds both by hand today and finds them useful features; the index "needs 
   - Tags are not hierarchical and mix several meanings, so each term needs a **kind** (place, route, incident) to be indexed and presented, and terms with no kind stay out of the index. The kind can be a statement `(term:45, has-kind, kind:route)` or term meta. If country > region sub-entries matter for tags, a "broader" statement between terms provides them.
   - One combined index is the default; the kind can drive typography or a per-kind index later.
 - **Parts of variable length (Eric's objection).** The table of contents, the index and chapter openings have no fixed page count, so declaring counts for them by hand would burden the user. Proposed ways to remove most of that burden:
-  - **Numbering design.** Number the front matter with roman numerals (or leave it unnumbered), so the body starts at page 1 whatever the front matter length; put the table of contents and the index **after** the body (a common layout in French books), so they never shift the page numbers of the posts. Only the chapter openings, interleaved with the posts, remain variable.
+  - **Numbering design (optional, no longer needed).** An earlier idea was roman numerals for the front matter and the table of contents after the body. Eric's first book shows it is not needed: the table of contents is at the front, its length is independent of its page numbers and is found by a first pass, and the folios are the physical pages of the PDF. Roman numerals and a table of contents at the back stay possible as layout options.
   - **Chapter openings:** give each opening a declared page count (default 1), as for posts, and **calibrate instead of asking the user to count**: a renderer measures the real count and the plugin stores it; without a renderer, a "Pages" screen lists each unit with its status (declared, verified, mismatch) and lets the user type the count seen in the print preview once. An idea to evaluate: import the produced PDF and find the page of each post title to fill the counts.
   - With a measuring renderer none of this is needed; the declared strategy is the dependency-free baseline.
 - **Export.** The table of contents and the index can also be exported as CSV or JSON (with page numbers when known), which replaces Eric's database queries and keeps external steps possible.
