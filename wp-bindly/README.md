@@ -162,9 +162,23 @@ Implications for the design:
 - A mode may need **parameters or options** (here the map size) and **hooks for third-party plugins** (WP GPX Maps) that adapt their output per mode. To design: a way for integrations to ask "which mode is active, with which options?".
 - The per-attachment "Print" flag becomes a mode-qualified attachment per post (see the Media Helper section).
 - Per-mode assets (stylesheets) are needed, as already listed; some of what the CSS hides could be removed from the print templates instead.
-- Whether the `-print` templates are theme files or `wp_template` posts edited in the site editor is not known yet; ask Eric where they live and where the print links come from.
+- The `-print` templates are `wp_template` posts created in the site editor (database), not theme files. Where the print links come from is still to find out.
 
-Still unknown: how the PDFs are produced and assembled, and what the "Regression" commit refers to.
+Answers from Eric (2026-10-09):
+
+- **The `-print` templates are created in the site editor**, so they are `wp_template` posts stored in the database, not theme files. Their ids still have the form `theme//slug`. They are tied to the active theme and are not versioned in git (export from the site editor is the only copy outside the database). The admin screen for relations should list templates from both sources (files and database).
+- **The "Regression" commit** concerns the print CSS the plugin injects: a rule was removed. Which rule is not known, and the repository has a single commit, so there is no history to compare. It shows how fragile a global stylesheet full of `!important` overrides is.
+- **PDFs are produced and assembled by hand today:** each page is printed to PDF with the Samsung Internet browser on Android (the only browser Eric found that does not add a header and footer), then the PDFs are arranged and merged with PDF Arranger on Ubuntu. Automation would save a lot of time.
+
+### PDF production: automation options
+
+**Proposed**, nothing decided.
+
+- **Constraint.** A PHP PDF library (Dompdf, mPDF, TCPDF) is a poor fit: block themes rely on modern CSS (flex, grid, CSS variables), and the pages contain JavaScript-rendered maps (Leaflet, WP GPX Maps) and lazily loaded images. A real browser engine is needed. The plugin itself stays PHP-only (no `shell_exec`), so rendering happens outside WordPress.
+- **What the plugin provides.** The `print`/`book` modes and their templates; a **single book page** (all posts of a book in order, table of contents, `@page` size and margins, continuous page numbers); a **manifest** of the book (ordered list of URLs with mode and options) through the REST API and WP-CLI.
+- **What an external renderer does.** Opens the book page, or each URL of the manifest, in headless Chromium (for example Playwright, `page.pdf()` with header and footer disabled and the CSS page size preferred), waits for maps and images to finish loading, and merges the PDFs if there are several. With one book page, page numbering, table of contents and running headers become continuous, which per-post PDFs merged afterwards cannot give.
+- **Where the renderer could run** (to decide): a small command-line tool on Eric's Ubuntu laptop; a CI job; the web host if it can run Chromium (unlikely on shared hosting); or in the browser with a paged-media library such as Paged.js (to verify with maps and the volume of a full book, and on a phone).
+- **Open for Books:** where the renderer lives (this repository, a separate tool), and how far "Books" goes beyond composing the book and exposing the manifest.
 
 ## Integration with Media Helper
 
@@ -191,7 +205,7 @@ First step: read Media Helper's attachment model and the hooks it already offers
 
 1. ~~Packaging~~: decided, see "Packaging" above. Still open within it: the plugin's final name.
 2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
-3. **PDF chain**: the `?print` hack is now known (see "The current hack"). Still to describe by Eric: how PDFs are made and assembled, where the `-print` templates and the print links live, and what the "Regression" commit refers to.
+3. **PDF automation**: the current manual chain and the options are described above. To decide: where the renderer runs (laptop, CI, host, browser), whether it lives in this project, and where the print links come from.
 4. **Page formats and printers** for the books.
 5. **Domain 1 scope**: what is built first, and whether the triples component is extracted as a standalone plugin later.
 6. **Gitea**: Eric's private repositories on his Gitea server may contain the hack. Reaching them requires allowing the server's domain in the environment's network settings and a read-only token stored as a secret, not pasted in chat.
