@@ -167,7 +167,8 @@ Implications for the design:
 Answers from Eric (2026-10-09):
 
 - **The `-print` templates are created in the site editor**, so they are `wp_template` posts stored in the database, not theme files. Their ids still have the form `theme//slug`. They are tied to the active theme and are not versioned in git (export from the site editor is the only copy outside the database). The admin screen for relations should list templates from both sources (files and database).
-- **The "Regression" commit** concerns the print CSS the plugin injects: a rule was removed. Which rule is not known, and the repository has a single commit, so there is no history to compare. It shows how fragile a global stylesheet full of `!important` overrides is.
+- **The "Regression" commit** concerns the print CSS the plugin injects: a rule was removed. Which rule is not known, and the repository has a single commit, so there is no history to compare. It shows how fragile a global stylesheet full of `!important` overrides is. Eric recalled the rule as `.skip-link.screen-reader-text { display: none !important; }`; it is present in the committed file (last selector of the first rule), so the repository copy already has it and the deployed copy may differ. It is very specific to the current theme.
+- **The print links** are included discreetly in Eric's view templates so that a visitor can reach the print version.
 - **PDFs are produced and assembled by hand today:** each page is printed to PDF with the Samsung Internet browser on Android (the only browser Eric found that does not add a header and footer), then the PDFs are arranged and merged with PDF Arranger on Ubuntu. Automation would save a lot of time.
 
 ### PDF production: automation options
@@ -177,8 +178,14 @@ Answers from Eric (2026-10-09):
 - **Constraint.** A PHP PDF library (Dompdf, mPDF, TCPDF) is a poor fit: block themes rely on modern CSS (flex, grid, CSS variables), and the pages contain JavaScript-rendered maps (Leaflet, WP GPX Maps) and lazily loaded images. A real browser engine is needed. The plugin itself stays PHP-only (no `shell_exec`), so rendering happens outside WordPress.
 - **What the plugin provides.** The `print`/`book` modes and their templates; a **single book page** (all posts of a book in order, table of contents, `@page` size and margins, continuous page numbers); a **manifest** of the book (ordered list of URLs with mode and options) through the REST API and WP-CLI.
 - **What an external renderer does.** Opens the book page, or each URL of the manifest, in headless Chromium (for example Playwright, `page.pdf()` with header and footer disabled and the CSS page size preferred), waits for maps and images to finish loading, and merges the PDFs if there are several. With one book page, page numbering, table of contents and running headers become continuous, which per-post PDFs merged afterwards cannot give.
-- **Where the renderer could run** (to decide): a small command-line tool on Eric's Ubuntu laptop; a CI job; the web host if it can run Chromium (unlikely on shared hosting); or in the browser with a paged-media library such as Paged.js (to verify with maps and the volume of a full book, and on a phone).
-- **Open for Books:** where the renderer lives (this repository, a separate tool), and how far "Books" goes beyond composing the book and exposing the manifest.
+- **Eric's preference:** ideally on the server, but that means installing extra software, which could put off other users of the plugin. His own site runs under Docker, so it is not a problem for him. Serving the assembled result as HTML + CSS and printing from a browser (Samsung Internet while it adds no header, or a small dedicated Android app) is also considered.
+- **Renderer backends** (**proposed** design): optional and pluggable behind one interface, all consuming the same book page and manifest.
+  1. **Browser, the default, no dependency.** The plugin serves the book as HTML + CSS and the user prints it from a browser. `@page { margin: 0 }` with padding on the content normally hides the browser's own header and footer in Chromium-based browsers (to verify on Samsung Internet), which would remove the dependence on one browser. A small Android app (a WebView and the Android print framework) is possible but is a separate project and is not planned.
+  2. **Sidecar HTTP renderer, optional.** A headless Chromium service in a container next to WordPress, called over HTTP by the plugin: no `shell_exec`, nothing installed in the WordPress container. It fits Eric's Docker setup and stays an opt-in for other users. Gotenberg is a known candidate (HTML or URL to PDF, and PDF merging); its current API and how to wait for the maps are to verify. The service must be able to reach the site, and the plugin only ever sends URLs of its own site.
+  3. **External tool consuming the manifest, optional:** a command-line tool on a laptop or in CI.
+- **Limitation to check:** Chromium does not support the paged-media features needed for a table of contents with page numbers and running headers (`target-counter()`, running elements). Paged.js polyfills them in the browser; a renderer based on Chromium shares the limitation unless it also runs such a polyfill.
+- **Print link in the views** (**proposed**): a block that builds the link to the current page in a given mode, shown only when a relation exists for the current template and that mode, replacing hand-written links in the templates.
+- **Open for Books:** whether any renderer backend lives in this project or in a separate tool, and how far "Books" goes beyond composing the book and exposing the manifest.
 
 ## Integration with Media Helper
 
@@ -205,7 +212,7 @@ First step: read Media Helper's attachment model and the hooks it already offers
 
 1. ~~Packaging~~: decided, see "Packaging" above. Still open within it: the plugin's final name.
 2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
-3. **PDF automation**: the current manual chain and the options are described above. To decide: where the renderer runs (laptop, CI, host, browser), whether it lives in this project, and where the print links come from.
+3. **PDF automation**: the current manual chain and the options are described above. To decide: which backends to build first (browser output is the baseline) and whether any lives in this project.
 4. **Page formats and printers** for the books.
 5. **Domain 1 scope**: what is built first, and whether the triples component is extracted as a standalone plugin later.
 6. **Gitea**: Eric's private repositories on his Gitea server may contain the hack. Reaching them requires allowing the server's domain in the environment's network settings and a read-only token stored as a secret, not pasted in chat.
