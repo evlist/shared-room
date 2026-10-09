@@ -42,33 +42,32 @@ Examples of what it covers:
 | Trip stages | `(post:12, next, post:13)` or `(post:12, part-of, post:2)` |
 | Content of a book | `(post:book-2026, contains, post:12)` with a position |
 
-### Reification: statements with identity and qualifiers
+### Reification: statements about statements
 
-**Decided.** Eric's example: a photo attached to a post, where the attachment must say whether it concerns the web presentation, the print presentation, or both. That is an n-ary relation, so a plain triple is not enough. Options considered: pure triples reified on demand (a fact becomes several triples), one predicate per combination (unmanageable), quads with a context column (covers the mode but not position or caption), and **statements with identity and qualifiers**, which was chosen.
+**Decided**, revised on 2026-10-09 by Eric (this replaces an earlier decision: qualifiers in a second table, with a fingerprint, a flag for repeated statements and a position column).
 
-- Every statement has its own **identity**. `rel:123` is a valid typed identifier, usable as subject or object of another statement, so true reification (a statement about a statement) stays possible without any schema change.
-- A statement can carry **qualifiers**: typed key/value pairs declared by the predicate in the registry (name, type, single or multiple values). The core validates them.
-- The core knows nothing about modes. Domain 2 registers a qualifier type "mode" (a set of mode slugs). This keeps the one-way dependency. This replaces the earlier idea of making a mode a predicate (`mode/print`), which was dropped: it multiplies predicates and cannot carry other qualifiers.
-- Reading rule (**proposed**): no `mode` qualifier means "all modes"; the most specific statement wins, as for templates.
+Eric's example: a photo attached to a post, where the attachment must say whether it concerns the web presentation, the print presentation, or both, and at which rank. That is an n-ary relation, so a plain triple is not enough. Options considered: one predicate per combination (unmanageable), quads with a context column (covers the mode but not the position), qualifiers stored apart from the triple, and **statements about statements**, which was chosen.
+
+- Every statement has its own identity (its `id`), and `statement:ID` is a valid subject or object. **A qualification is just another statement** whose subject is the statement qualified. The unit is the triple; a statement stays the same whatever statements are later added about it.
 
 ```
-(post:12, illustrated-by, attachment:88) {modes: [web, print], position: 2}
-(post:12, illustrated-by, attachment:91) {modes: [print]}
-(template:foo, has-variant, template:bar) {mode: print}
+statement:41: (post:12, illustrated-by, attachment:88)
+statement:42: (statement:41, mode, mode:web)
+statement:43: (statement:41, mode, mode:print)
+statement:44: (statement:41, position, 5)
+statement:45: (statement:43, position, 1)
 ```
 
-**Decided: two tables at the start.**
+- Here the photo is in the web and print versions; its rank is 5 for every mode (44), except in print where it is 1 (45): a statement about the print qualification. No splitting, merging or renumbering is ever needed to give a mode its own rank.
+- **Reading rule** (proposed): no `mode` statement means "all modes". A position on a mode statement applies to that mode only and overrides the position on the statement itself; without any position the natural order (for photos, date and time computed by the consumer) applies. The order is computed on all the statements of the subject and predicate, then filtered by mode, so the relative order is the same in every mode.
+- **One table.** Unique index on the whole triple: (subject type, subject, predicate, object type, object). A triple exists at most once; the index must include the object, otherwise statements 42 and 43 would clash.
+- **Objects are entities or typed literals** (`5`, a string, a boolean). `mode:web` is an entity of type `mode`, registered by the Modes module, so that the validity of a mode is checked by its entity type. The type `statement` is an entity type of the Triples module.
+- **A qualifier is a predicate** of the same registry, for example `modes/mode` or `triples/position`. A predicate declares which predicates may qualify its statements (`illustrated-by` accepts `modes/mode` and `triples/position`; `modes/mode` accepts `triples/position`), and the existing limits express "at most one position".
+- **Repeated facts** need nothing special. "Worked at X from 2010 to 2012, then from 2015 to 2018" is `(1: A, worked-at, X)`, `(2: 1, from, "2010 to 2012")`, `(3: 1, from, "2015 to 2018")`: same subject and predicate, different objects, so the unique index accepts both. If each period has its own role, the role qualifies the statement of the period: `(2, role, engineer)`, `(3, role, manager)`.
+- **Limits.** A qualifier has a single object: a structured value needs a typed literal (an interval) or an anonymous node (not planned). A literal string is limited to 191 bytes, which suits a mode, a rank or a short caption, not a long text.
+- **Consequences.** Deleting a statement deletes, recursively, the statements about it (the same mechanism as the cleanup when a post or a media item is deleted). Reading a photo with its modes and ranks needs joins, which the indexes support and an object cache will absorb. This is also RDF reification with an identifier per triple, so the export is direct.
 
-- Statements: logically `id, subject, predicate, object`; physically `id`, `subject_type`, `subject_id`, `predicate`, `object_type`, `object_id`, and probably a position.
-- Qualifiers: `(statement_id, key, value)`, indexed on `(key, value)`. A JSON column is avoided because WordPress does not guarantee the JSON type on every database it supports, and filtering by mode must be efficient.
-- Reasons for two tables over one: qualifiers can be type-checked through the registry, queries by mode are simpler to index, and deleting a statement removes its qualifiers without a special rule.
-- The two forms are **logically equivalent**: a qualifier is a triple whose subject is the statement, `(rel:123, mode, "print")`. A single table (literals allowed as objects) is therefore possible later without changing the model.
-
-Open sub-questions:
-
-- May several statements share the same *(subject, predicate, object)* with different qualifiers (needed if the position of a photo differs between web and print)? Proposed: a flag per predicate.
-- Is an exclusion form ("all modes except print") needed? Proposed: not at the start; one statement per mode is enough.
-- Not planned: named graphs, inference.
+Not planned: named graphs, inference.
 
 Risk: a generic relation engine can absorb all the development time. **Proposed** mitigation: deliver first only the two uses that serve the books (template modes and the ordered content of a book) behind a clean API; add media and post-to-post relations as real needs appear. The "Posts 2 Posts" plugin did something similar for posts and is no longer maintained, which shows both the need and the effort.
 
@@ -78,7 +77,7 @@ Risk: a generic relation engine can absorb all the development time. **Proposed*
 
 - A **mode** is a declared entity: slug (`print`, `book`, `cover`...), label, query-string trigger.
 - A **relation** *(source template, mode) → target template* says "template `bar` is the `print` version of template `foo`". One target can serve several sources. A default target per mode is possible: *(\*, print) → print-default*.
-- **Decided**: a mode is *not* a predicate. The mode of a relation is a qualifier of the statement (see "Reification" above): "`bar` is the `print` version of `foo`" is `(template:foo, has-variant, template:bar)` qualified by `mode: print`.
+- **Decided**: a mode is *not* a predicate. The mode of a relation is given by a further statement about the relation (see "Reification" above): "`bar` is the `print` version of `foo`" is `(template:foo, has-variant, template:bar)` plus `(that statement, mode, mode:print)`.
 - **Resolution**: WordPress picks the template as usual (full hierarchy); if a mode is active, the plugin looks for a relation for that template, then a default target for the mode, then applies the fallback.
 
 Decided details:
@@ -104,7 +103,7 @@ To verify in the WordPress source before building: block themes (HTML files, or 
 Only sketched so far; nothing decided.
 
 - **Proposed**: a book is a selection of posts (by date, category, tag or trip) with an order and sections (month, stage), stored as an ordered `contains` relation.
-- **Proposed**: `book` and `cover` are modes of domain 2, each with its own target templates. Each post is rendered in the `print`/`book` mode. A photo can then be attached to a post for the web only, for print only, or for both, through the `mode` qualifier.
+- **Proposed**: `book` and `cover` are modes of domain 2, each with its own target templates. Each post is rendered in the `print`/`book` mode. A photo can then be attached to a post for the web only, for print only, or for both, through statements about the `mode`.
 - **PDF production, proposed order**:
   1. A single "book" page: all posts concatenated with a table of contents, CSS `@page` rules and page breaks, turned into a PDF by the browser or a paged-media tool. This needs no external binary and keeps the "no `shell_exec`" rule used in `wp-i18nly`.
   2. Later, optionally, server-side rendering (headless Chrome or a service) to produce PDFs automatically.
@@ -144,14 +143,14 @@ Data from the table of contents of the first book (a spreadsheet of 215 rows: ti
 Eric builds both by hand today and finds them useful features; the index "needs real thinking". **Proposed**, nothing decided.
 
 - **The core difficulty is page numbers.** They exist only after pagination, which happens in the renderer, not in WordPress. A table of contents or index *with page numbers* therefore needs a renderer that can resolve them: a paged-media polyfill such as Paged.js (`target-counter()`), or a two-pass process (render, read the page of each anchor, inject the numbers, render again). Plain browser printing cannot do it. A table of contents *without* page numbers (sections, post titles, dates) is independent of the layout and can come first.
-- **Table of contents.** Derived from the structure of the book: sections and ordered posts (the ordered `contains` statements and their section qualifier). The simpler of the two features.
+- **Table of contents.** Derived from the structure of the book: sections and ordered posts (the ordered `contains` statements and the statements about them that give their section). The simpler of the two features.
 - **Where index entries come from** (three sources, which can be combined):
   1. **Taxonomy terms** (tags, categories such as places or species): each term used by the posts of the book becomes an entry, with the posts as locators. Automatic, but coarse.
   2. **Explicit marks in the text**: an inline "index entry" mark with an optional sub-entry, a sort key and a locator anchored in the passage (the idea of `\index` in LaTeX or `indexterm` in DocBook). Precise, but costly to author by hand; the step that generates the post HTML could also emit the marks.
-  3. **Statements**: an entry is the object of a statement such as `(post:12, mentions, term:45)`; sub-entries come from a "broader" relation between terms, "see also" from a relation between entries. The qualifiers carry what an index needs: the passage anchor, whether the mention is main or passing (bold page number), and the mode (print only). This ties the index to the triples domain.
+  3. **Statements**: an entry is the object of a statement such as `(post:12, mentions, term:45)`; sub-entries come from a "broader" relation between terms, "see also" from a relation between entries. Statements about the mention carry what an index needs: the passage anchor, whether the mention is main or passing (bold page number), and the mode (print only). This ties the index to the triples domain.
 - **What a real index needs:** entries and sub-entries; "see" and "see also"; sorting that follows the language (accents, ignored leading articles, explicit sort keys; PHP's `intl` `Collator` is optional, so availability is to verify); letter headings; page ranges collapsed (12-14); main references highlighted; display forms that differ from the sort form.
 - **Eric's experience (one book printed so far).** He checked by hand that each daily post fits on one page. Database queries then extracted a CSV (without page numbers) of the index entries, and the page numbers were computed and added in a second step, since a post's page follows from its position. He indexed mainly place names, then itinerary names, and, occasionally, notable incidents. Page numbers in the table of contents and index are really useful if they can be included.
-- **Page numbers without a layout engine (proposed).** Eric's trick generalizes: if every post of a book starts on a new page (CSS page break before each post) and each post declares how many pages it takes (default 1, a qualifier on the `contains` statement), then the first page of each post is the cumulative sum of the previous page counts plus the front matter. No renderer is needed. A verification step must catch a post that overflows its declared count: the renderer, when present, reports the real page count of each post and the plugin warns on a mismatch; without a renderer, the print preview is the check. Blank pages needed so that sections start on a right-hand page can be modeled the same way.
+- **Page numbers without a layout engine (proposed).** Eric's trick generalizes: if every post of a book starts on a new page (CSS page break before each post) and each post declares how many pages it takes (default 1, a statement about the `contains` statement), then the first page of each post is the cumulative sum of the previous page counts plus the front matter. No renderer is needed. A verification step must catch a post that overflows its declared count: the renderer, when present, reports the real page count of each post and the plugin warns on a mismatch; without a renderer, the print preview is the check. Blank pages needed so that sections start on a right-hand page can be modeled the same way.
 - **Page resolution as a replaceable strategy (proposed).** Two strategies behind one interface, so that the table of contents and the index do not care which one is used: *declared* (the counting above, no dependency, post-level locators) and *measured* (Paged.js or a two-pass render, which handles posts of arbitrary length and passage-level anchors).
 - **What gets indexed, and where it lives today (Eric).** Itineraries (GR10, Via Tolosana...), countries, regions and incidents are all **tags** (`post_tag`). In the printed book an itinerary tag only says that the route was followed or crossed that day, so a route is *not* a richer entity (an earlier idea of stages `part-of` a route is dropped). Cities and villages were typed in by hand, not tagged. The printed book has a single combined index.
 - **Consequences for the index (proposed).**
@@ -174,7 +173,7 @@ Eric builds both by hand today and finds them useful features; the index "needs 
 Why it fits:
 
 - The core model is already a set of *(subject, predicate, object)* statements. Typed identifiers map to IRIs, and predicates of the registry can carry an optional IRI.
-- Statements with identity and qualifiers map to RDF through reification, the n-ary pattern, or RDF-star / RDF 1.2 annotations (more elegant, less well supported by tools; the current state of PHP library support was not checked).
+- Statements about statements map to RDF through classic reification (a statement identifier as subject), or RDF-star / RDF 1.2 annotations (more elegant, less well supported by tools; the current state of PHP library support was not checked).
 - Serializations: **Turtle** for humans and diffs (N3 is a superset with rules, which are not needed), **N-Triples** for streaming, **JSON-LD** as the most natural for WordPress (it is JSON, close to the REST API, and needs no heavy parser to produce).
 
 What it would bring: no lock-in, existing tools (SPARQL, SHACL, visualization), bulk editing of relations as text under version control, and links to external authorities (Wikidata, GeoNames for places, taxonomies for species) that would also give authority to the index and allow `schema.org` JSON-LD in pages.
@@ -187,10 +186,10 @@ Costs and pitfalls:
 
 Direction:
 
-1. JSON stays the main exchange format (exact round trip, qualifiers included), as decided.
+1. JSON stays the main exchange format (exact round trip, statements about statements included), as decided.
 2. Later, add a JSON-LD export, then Turtle, as a function of the `Triples` module, not a new module.
 3. Consider RDF import only if a real need appears (for example seeding places from Wikidata).
-4. Prepare the ground now at almost no cost: an optional IRI per predicate, an IRI resolver interface per entity type, stable statement identifiers, and typed qualifier values (string, integer, boolean) so that they map to RDF datatypes.
+4. Prepare the ground now at almost no cost: an optional IRI per predicate, an IRI resolver interface per entity type, stable statement identifiers, and typed literals (string, integer, boolean) so that they map to RDF datatypes.
 
 ## Packaging
 
@@ -206,7 +205,7 @@ Reasons:
 Namespaces are necessary but not sufficient. The eight rules that keep the split cheap:
 
 1. **One-way dependencies, checked by an automated test** (`deptrac` or equivalent): `Triples` knows nothing, `Modes` sees only `Triples`, `Books` sees only the other two.
-2. **Talk through a public API, not concrete classes.** `Modes` never writes SQL in the `Triples` tables; it goes through interfaces and hooks (for example registering the "mode" qualifier type).
+2. **Talk through a public API, not concrete classes.** `Modes` never writes SQL in the `Triples` tables; it goes through interfaces and hooks (for example registering the `mode` entity type).
 3. **Each module owns its data:** creation and migration of its tables, its schema version in its own option, its own cleanup in `uninstall`.
 4. **Names belong to the module, not to the umbrella:** table names (`triples_statements`, not `otherguise_statements`), options, hooks, REST namespace (`triples/v1`), capabilities and text domain. This is the costliest to fix afterwards, because renaming stored data and settings needs a migration.
 5. **A directory layout that lets a module be lifted out:** `plugin/modules/triples/`, `modules/modes/`, `modules/books/`, each with its own sources, tests, translation files and admin scripts.

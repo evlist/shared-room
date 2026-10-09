@@ -38,8 +38,8 @@ The project is called **wp-otherguise** ("same content, another guise"; chosen o
 
 Three functional domains, with one-way dependencies:
 
-1. **Triples**: a registry of predicates and a store of *(subject, predicate, object)* relations with typed identifiers (`post:123`, `term:45`, `template:theme//slug`, `attachment:88`, `ext:youtube:ID`), optional position (for order) and metadata. Depends on nothing.
-2. **Multiple templates**: *modes* (`print`, `book`, `cover`...) selected through the query string; "template `bar` is the `print` version of template `foo`" is the statement `(foo, has-variant, bar)` qualified by `mode: print`. A mode is a qualifier, not a predicate. Depends on 1.
+1. **Triples**: a registry of predicates and a store of *(subject, predicate, object)* relations with typed identifiers (`post:123`, `term:45`, `template:theme//slug`, `attachment:88`, `ext:youtube:ID`), no separate metadata: qualifications are statements about statements. Depends on nothing.
+2. **Multiple templates**: *modes* (`print`, `book`, `cover`...) selected through the query string; "template `bar` is the `print` version of template `foo`" is the statement `(foo, has-variant, bar)` with a further statement `(that statement, mode, mode:print)`. A mode is an entity, not a predicate. Depends on 1.
 3. **Books**: ordered `contains` relation, a single book page, PDF assembly. `book` and `cover` are modes of domain 2. Depends on 1 and 2.
 
 Decided (Eric accepted these recommendations):
@@ -48,7 +48,7 @@ Decided (Eric accepted these recommendations):
 - Relations also apply to template parts, not only templates.
 - Trigger with `?mode=print`, with an optional `?print` alias for existing links.
 - Relations are edited in an admin screen, with JSON export and import.
-- Statements have an identity (`rel:ID` is a valid subject or object) and carry typed qualifiers declared in the predicate registry; the core knows nothing about modes. Stored in two tables (statements, qualifiers) at the start. Details in `wp-otherguise/README.md`.
+- Statements are triples that have an identity, and a qualification is another statement whose subject is the statement qualified (`(statement:41, mode, mode:print)`, `(statement:43, position, 1)`). One table, unique on the whole triple; objects are entities or typed literals; qualifiers are predicates of the same registry; the core knows nothing about modes. Details in `wp-otherguise/README.md` (revised on 2026-10-09).
 
 - **One plugin with three modules** (`Triples`, `Modes`, `Books`), to be split into three plugins later if useful. Follow the eight rules in the "Packaging" section of `wp-otherguise/README.md`: one-way dependencies enforced by a test, communication through a public API, each module owns its data, names (tables, options, hooks, REST namespace, capabilities, text domain) belong to the module and not to the umbrella, a lift-out directory layout, per-module tests, a module loader, no catch-all "common" directory.
 
