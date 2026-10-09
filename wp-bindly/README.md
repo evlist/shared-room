@@ -136,6 +136,36 @@ Namespaces are necessary but not sufficient. The eight rules that keep the split
 
 Work left at split time: plugin headers and `Requires Plugins`; a runtime check of the `Triples` API version (WordPress does not enforce plugin versions); taking over existing data and the activation order; CI, releases and translations in three copies; regrouping the admin menus. For Eric's own blog this is almost immediate; if other people install the plugin first, taking over their data needs more care.
 
+## The current hack: `wp-pdf-helper`
+
+Found on 2026-10-09: the hack is a small WordPress plugin, "WP PDF Helper", in the public repository <https://gitea.dyomedea.com/vdv/wp-pdf-helper> (one commit, May 2025, titled "Regression"; empty README; one PHP file of 124 lines and a few assets). The Gitea host was reachable from the session without any network change because the repository is public; private repositories there would still need a read-only token.
+
+What it does:
+
+- **Mode trigger.** At load time, `if ( ! array_key_exists( 'print', $_GET ) ) return;`. Everything below runs only when the query string has a `print` key (any value, even empty). The mode is decided once, at plugin load, and is not propagated to links.
+- **Template swap, block themes only.** A `get_block_templates` filter takes the id of the first `wp_template` in the result (`theme//single`), appends `-print`, loads it with `get_block_template()` and, if it exists, replaces the first element. Classic PHP themes are not supported. No check that the result is non-empty, and the filter applies to every call of `get_block_templates`, not only the front-end template resolution.
+- **Print stylesheet.** Enqueues `wp-pdf-helper-print.css`: hides header, navigation, footer, videos, comments, query loops and map controls with `display: none !important`, adjusts margins and font sizes, adds `page-break-*` rules. It depends on the theme's class names and on other plugins' blocks (`wp-block-wpprg-wp-printable-gallery`, Leaflet, WP GPX Maps). It has no `@page` rule, so page size and margins are not defined here.
+- **A second query parameter.** `?gpxmap-size=small|large` sets the map and chart heights through the `wpagpx_shortcode_parameters` filter of WP GPX Maps, and turns off attachments and downloads in print mode.
+- **A "Print" checkbox in the media library.** A column added to the media list saves the post meta `wpdfh.print = 'always'` through AJAX. Nothing in this plugin reads that meta; whatever uses it (a theme template or the printable gallery block) lives elsewhere. It is a per-attachment flag, global to all posts, which is the primitive version of a statement qualified by mode.
+- **No PDF production.** Nothing here creates or assembles PDFs; the description says "helps to print". PDFs presumably come from the browser's print function or an external tool. The `.print-link` style exists but no code in the repository generates the link, so it is probably in the theme.
+
+Problems visible in the code (useful as a checklist for the replacement):
+
+- The AJAX handler `wpdfh_set_print_metadata` has **no nonce and no capability check** and does not validate `post_id`: any logged-in user, whatever the role, can set or delete the meta on any post.
+- Debug `error_log` calls remain active, including a `print_r` of the template object on every filtered call.
+- Global functions with generic names (`add_media_column`, `manage_custom_columns`, `ww_load_styles`): collision risk. Hard-coded English labels, no text domain, no `uninstall`, no version on enqueued assets, empty README, an editor configuration file committed.
+- **Naming collisions in the template hierarchy.** Appending `-print` to a template slug produces names WordPress also uses itself: `page-print` is the template of a page whose slug is `print`, `category-print` and `tag-print` those of a term with that slug, `single-print` the template of a post type named `print`. Explicit relations between templates avoid this.
+
+Implications for the design:
+
+- Block themes (and block templates stored in the database or in theme files) must be supported; the existing hook point works only through `get_block_templates`, and whether better points exist is still to verify in WordPress core.
+- A mode may need **parameters or options** (here the map size) and **hooks for third-party plugins** (WP GPX Maps) that adapt their output per mode. To design: a way for integrations to ask "which mode is active, with which options?".
+- The per-attachment "Print" flag becomes a mode-qualified attachment per post (see the Media Helper section).
+- Per-mode assets (stylesheets) are needed, as already listed; some of what the CSS hides could be removed from the print templates instead.
+- Whether the `-print` templates are theme files or `wp_template` posts edited in the site editor is not known yet; ask Eric where they live and where the print links come from.
+
+Still unknown: how the PDFs are produced and assembled, and what the "Regression" commit refers to.
+
 ## Integration with Media Helper
 
 **Raised by Eric; to be studied, nothing decided.** [`wp-media-helper`](https://github.com/evlist/wp-media-helper) currently handles only native WordPress attachments. Statements will bring things it cannot express today:
@@ -176,6 +206,6 @@ From existing projects (see the repository `README.md` for the list):
 ## Suggested first steps (not started)
 
 1. Write the slice plan for domain 1 (predicate registry, storage, API) in the project repository, following the `wp-media-helper` format.
-2. Study the real `?print` hack and PDF chain once provided.
+2. ~~Study the real `?print` hack~~ (done, see "The current hack"); study the PDF chain once described.
 3. Check in WordPress core how to hook template selection for both block and classic themes.
 4. Study Media Helper's attachment model and extension points (see "Integration with Media Helper").

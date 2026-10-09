@@ -55,7 +55,7 @@ Decided (Eric accepted these recommendations):
 Open (do not assume):
 
 - The final name of the plugin (candidates: `wp-bindly`, `wp-books`, or a name centered on relations).
-- How the current `?print` hack and the PDF production chain work in detail: Eric will provide the code; the presentation does not contain it.
+- The PDF production chain (how PDFs are made and assembled). The `?print` hack is the plugin `wp-pdf-helper` (<https://gitea.dyomedea.com/vdv/wp-pdf-helper>, public); findings are in `wp-bindly/README.md`.
 - Whether the Gitea server holding private repositories is reachable: requires allowing its domain in the environment's network settings and a read-only token stored as a network secret or environment variable, never pasted in chat.
 
 ## Rules for working
