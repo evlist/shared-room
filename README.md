@@ -63,5 +63,5 @@ No repository yet. Ideas being discussed, to be recorded here as decisions once 
 
 - [ ] Complete the notes of the repositories marked "To be completed" or "Not observed".
 - [ ] Create a directory for each repository that needs one.
-- [ ] Add a `CLAUDE.md` with the context to load in every session.
+- [x] Add a `CLAUDE.md` with the context to load in every session.
 - [ ] Choose a license for this repository.
