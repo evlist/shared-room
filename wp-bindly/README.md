@@ -112,6 +112,24 @@ Only sketched so far; nothing decided.
 
 Format today: A5, printed at coollibri.com (a detail for now; page size must stay configurable per book).
 
+### The manual finishing chain (from Eric's how-to notes)
+
+Eric shared a short LibreOffice document ("howto", November 2025) describing how the first book, six months on the Camino de Santiago, was finished. It supersedes the earlier mention of PDF Arranger for the final assembly. The steps, all command-line except the table of contents and index:
+
+1. **Merge.** The monthly PDFs are merged with `pdfcpu merge`. Each monthly file is named `<start-date>_<end-date>_<title>.pdf` (for example `20250404_20250503_compostelle_1er_mois.pdf`). A book is therefore a sequence of **parts** defined by a date range and a title, each part printed to one PDF from the browser.
+2. **Resize to A5.** `pdfcpu resize "formsize:A5"`. The pages are therefore *not* printed at A5 from the browser: the layout is designed at another size and scaled down afterwards (A4 to A5 is a factor of about 0.71), so the fonts and the layout shrink with it.
+3. **Reduce the photos.** Ghostscript (`gs -sDEVICE=pdfwrite -dPDFSETTINGS=/printer ...`) downsamples the images to shrink the file, presumably for the printer's upload limit.
+4. **Table of contents and index.** Built in a spreadsheet, exported as tab-separated CSV, inserted into Writer ("Insert / Text from File") and formatted with styles; the result becomes part of the PDF (the intermediate file is called `compostelle_wip.pdf`).
+5. **Page numbers.** Stamped on the final PDF with `pdfcpu stamp add -mode text -- "%p" ...` (bottom centre, small grey label with a rounded border). The numbers are the **physical page numbers of the PDF**, front matter included, not CSS counters. This is why the table of contents and index could be computed from the position of each post.
+
+Consequences for the design (**proposed**):
+
+- Everything after the browser step is command-line and automatable. A **finishing pipeline** with replaceable steps (merge, resize or scale to the book format, reduce images, stamp folios) fits behind the renderer interface; a sidecar could ship a Chromium together with `pdfcpu` and Ghostscript, which are Eric's current tools.
+- Stamping folios on the final PDF is robust: it does not depend on CSS page-margin support, and the physical page number matches what the table of contents and index cite. Roman numerals for the front matter would need stamping a page range (to verify in `pdfcpu`).
+- The book format should be set where the page is laid out (`@page` size in the book template) rather than by scaling afterwards; the scaling step can stay as a compatibility option.
+- A part is defined by a date range and a title: composing a book from "a period", as Eric did with database queries, should be a first-class way to build the list of posts, with parts as sections of the ordered `contains` statements.
+- Still unknown: whether the table of contents and the index were inserted before or after the body in the first book, and the browser's print size.
+
 ### Table of contents and index
 
 Eric builds both by hand today and finds them useful features; the index "needs real thinking". **Proposed**, nothing decided.
