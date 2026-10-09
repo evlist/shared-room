@@ -110,7 +110,20 @@ Only sketched so far; nothing decided.
   2. Later, optionally, server-side rendering (headless Chrome or a service) to produce PDFs automatically.
 - Final assembly (cover, continuous pagination, binding margins) could be done in PHP with a library or stay in an external tool.
 
-Not yet known: how PDFs are produced and assembled today, page sizes and printers targeted (A4, square, binding).
+Format today: A5, printed at coollibri.com (a detail for now; page size must stay configurable per book).
+
+### Table of contents and index
+
+Eric builds both by hand today and finds them useful features; the index "needs real thinking". **Proposed**, nothing decided.
+
+- **The core difficulty is page numbers.** They exist only after pagination, which happens in the renderer, not in WordPress. A table of contents or index *with page numbers* therefore needs a renderer that can resolve them: a paged-media polyfill such as Paged.js (`target-counter()`), or a two-pass process (render, read the page of each anchor, inject the numbers, render again). Plain browser printing cannot do it. A table of contents *without* page numbers (sections, post titles, dates) is independent of the layout and can come first.
+- **Table of contents.** Derived from the structure of the book: sections and ordered posts (the ordered `contains` statements and their section qualifier). The simpler of the two features.
+- **Where index entries come from** (three sources, which can be combined):
+  1. **Taxonomy terms** (tags, categories such as places or species): each term used by the posts of the book becomes an entry, with the posts as locators. Automatic, but coarse.
+  2. **Explicit marks in the text**: an inline "index entry" mark with an optional sub-entry, a sort key and a locator anchored in the passage (the idea of `\index` in LaTeX or `indexterm` in DocBook). Precise, but costly to author by hand; the step that generates the post HTML could also emit the marks.
+  3. **Statements**: an entry is the object of a statement such as `(post:12, mentions, term:45)`; sub-entries come from a "broader" relation between terms, "see also" from a relation between entries. The qualifiers carry what an index needs: the passage anchor, whether the mention is main or passing (bold page number), and the mode (print only). This ties the index to the triples domain.
+- **What a real index needs:** entries and sub-entries; "see" and "see also"; sorting that follows the language (accents, ignored leading articles, explicit sort keys; PHP's `intl` `Collator` is optional, so availability is to verify); letter headings; page ranges collapsed (12-14); main references highlighted; display forms that differ from the sort form.
+- **Delivery order (proposed):** table of contents without page numbers first; then page-number resolution in the renderer; then the index, as its own slice after a design note.
 
 ## Packaging
 
@@ -184,7 +197,7 @@ Answers from Eric (2026-10-09):
   2. **Sidecar HTTP renderer, optional.** A headless Chromium service in a container next to WordPress, called over HTTP by the plugin: no `shell_exec`, nothing installed in the WordPress container. It fits Eric's Docker setup and stays an opt-in for other users. Gotenberg is a known candidate (HTML or URL to PDF, and PDF merging); its current API and how to wait for the maps are to verify. The service must be able to reach the site, and the plugin only ever sends URLs of its own site.
   3. **External tool consuming the manifest, optional:** a command-line tool on a laptop or in CI.
 - **Limitation to check:** Chromium does not support the paged-media features needed for a table of contents with page numbers and running headers (`target-counter()`, running elements). Paged.js polyfills them in the browser; a renderer based on Chromium shares the limitation unless it also runs such a polyfill.
-- **Print link in the views** (**proposed**): a block that builds the link to the current page in a given mode, shown only when a relation exists for the current template and that mode, replacing hand-written links in the templates.
+- **Print link in the views** (**decided**): a block that builds the link to the current page in a given mode, shown only when a relation exists for the current template and that mode, replacing hand-written links in the templates.
 - **Open for Books:** whether any renderer backend lives in this project or in a separate tool, and how far "Books" goes beyond composing the book and exposing the manifest.
 
 ## Integration with Media Helper
@@ -213,7 +226,7 @@ First step: read Media Helper's attachment model and the hooks it already offers
 1. ~~Packaging~~: decided, see "Packaging" above. Still open within it: the plugin's final name.
 2. **Names**: candidates `wp-triples` or `wp-relations`, `wp-template-modes`, `wp-bindly` or `wp-books`. "Template Modes" no longer describes the whole.
 3. **PDF automation**: the current manual chain and the options are described above. To decide: which backends to build first (browser output is the baseline) and whether any lives in this project.
-4. **Page formats and printers** for the books.
+4. ~~Page formats and printers~~: A5 at coollibri.com for now; keep the format configurable. Still open: index design (see "Table of contents and index").
 5. **Domain 1 scope**: what is built first, and whether the triples component is extracted as a standalone plugin later.
 6. **Gitea**: Eric's private repositories on his Gitea server may contain the hack. Reaching them requires allowing the server's domain in the environment's network settings and a read-only token stored as a secret, not pasted in chat.
 
