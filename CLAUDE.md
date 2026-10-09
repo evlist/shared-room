@@ -34,6 +34,8 @@ One body of content (a travel blog on WordPress) published in several forms: web
 
 ## State of the thinking (not settled unless marked)
 
+Code name **wp-bindly** (umbrella name for the three domains below). The full summary, with each point marked decided, proposed or open, is in [`wp-bindly/README.md`](wp-bindly/README.md); read it first and keep it up to date. What follows is the short version.
+
 Three functional domains, with one-way dependencies:
 
 1. **Triples**: a registry of predicates and a store of *(subject, predicate, object)* relations with typed identifiers (`post:123`, `term:45`, `template:theme//slug`, `attachment:88`, `ext:youtube:ID`), optional position (for order) and metadata. Depends on nothing.

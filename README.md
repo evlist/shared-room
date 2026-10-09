@@ -53,11 +53,7 @@ The **Claude Code** column says whether I have worked on the repository with Cla
 
 ## Projects under discussion
 
-No repository yet. Ideas being discussed, to be recorded here as decisions once settled:
-
-- **Triples**: a registry of *(subject, predicate, object)* relations between templates, posts, media, etc.
-- **Multiple templates**: apply a different template depending on a *mode* (`print`, `book`...), through relations between templates and a query parameter.
-- **Books**: assemble a book (ordered content) from posts and combine the PDFs.
+- [`wp-bindly/`](wp-bindly/README.md): code name for the project replacing the `?print` hack and helping assemble books. No repository yet. Three domains: triples (a registry of *(subject, predicate, object)* relations), multiple templates (modes), and books.
 
 ## To do
 
